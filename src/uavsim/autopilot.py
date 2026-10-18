@@ -32,7 +32,7 @@ class Autopilot:
 
     def __post_init__(self) -> None:
         self.alt_pid = PID(
-            kp=0.004, ki=0.0, kd=0.02,
+            kp=0.004, ki=0.0002, kd=0.02, i_zone=5.0,
             out_min=-MAX_PITCH_CMD, out_max=MAX_PITCH_CMD, tau_d=0.5,
         )
         self.pitch_pid = PID(
@@ -49,10 +49,10 @@ class Autopilot:
         self.pitch_pid.reset()
         self.speed_pid.reset()
 
-    def update(self, y: np.ndarray, dt: float) -> Controls:
+    def update(self, y: np.ndarray, dt: float, airspeed: float | None = None) -> Controls:
         """Compute controls from the 13-element state for one control step."""
         altitude = -y[2]
-        airspeed = float(np.linalg.norm(y[3:6]))
+        airspeed = float(np.linalg.norm(y[3:6])) if airspeed is None else float(airspeed)
         pitch = quat.to_euler(y[6:10])[1]
 
         pitch_cmd = self.trim.pitch + self.alt_pid.update(self.target_altitude, altitude, dt)
@@ -65,4 +65,7 @@ class Autopilot:
         throttle = float(np.clip(throttle, 0.0, 1.0))
 
         return Controls(elevator=float(elevator), throttle=throttle)
+
+
+
 

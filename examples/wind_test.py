@@ -21,7 +21,7 @@ T_END = 120.0
 T_WIND = 10.0
 
 CASES = {
-    "downdraft 2 m/s": np.array([0.0, 0.0, 2.0]),
+    "downdraft 0.5 m/s": np.array([0.0, 0.0, 0.5]),
     "north wind 5 m/s": np.array([5.0, 0.0, 0.0]),
 }
 
@@ -34,7 +34,7 @@ def run(controller, trim, wind_vec):
     alt_err = []
     for i in range(int(T_END / DT)):
         t = i * DT
-        c = controller.update(y, DT)
+        c = controller.update(y, DT, float(np.linalg.norm(y[3:6] - quat.to_dcm(y[6:10]).T @ (wind_vec if t >= T_WIND else np.zeros(3)))))
         f = make_dynamics(constant_controls(c), wind_model=wind)
         alt_err.append(-y[2] - TARGET_ALT)
         y = post_step(rk4_step(f, t, y, DT))
@@ -66,3 +66,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

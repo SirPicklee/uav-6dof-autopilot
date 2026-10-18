@@ -20,6 +20,7 @@ class PID:
     out_min: float = float("-inf")
     out_max: float = float("inf")
     tau_d: float = 0.05          # derivative filter time constant (s)
+    i_zone: float = float("inf")  # integrate only while |error| < i_zone
 
     _integral: float = field(default=0.0, init=False, repr=False)
     _d_filtered: float = field(default=0.0, init=False, repr=False)
@@ -52,7 +53,7 @@ class PID:
         d_term = self.kd * self._d_filtered
 
         # Tentative output with the integral advanced by this step
-        i_candidate = self._integral + self.ki * error * dt
+        i_candidate = self._integral + (self.ki * error * dt if abs(error) < self.i_zone else 0.0)
         unsat = p_term + i_candidate + d_term
         out = min(max(unsat, self.out_min), self.out_max)
 
@@ -63,3 +64,4 @@ class PID:
             out = min(max(p_term + self._integral + d_term, self.out_min), self.out_max)
 
         return out
+

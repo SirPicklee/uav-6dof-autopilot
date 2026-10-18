@@ -41,9 +41,9 @@ class LQIController:
         self.x_trim = trim.state()
         self.xi_v = 0.0
 
-    def update(self, y, dt):
+    def update(self, y, dt, airspeed=None):
         altitude = -y[2]
-        airspeed = float(np.linalg.norm(y[3:6]))
+        airspeed = float(np.linalg.norm(y[3:6])) if airspeed is None else float(airspeed)
         theta = quat.to_euler(y[6:10])[1]
 
         e_h = float(np.clip(TARGET_ALT - altitude, -E_H_MAX, E_H_MAX))
@@ -132,6 +132,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
