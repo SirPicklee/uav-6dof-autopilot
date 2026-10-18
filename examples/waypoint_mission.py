@@ -16,7 +16,7 @@ from uavsim.lateral import LateralAutopilot
 ALT = 1000.0
 SPD = 50.0
 DT = 0.02
-T_MAX = 400.0
+T_MAX = 400.0; T_EXTRA = 40.0
 WAYPOINTS = np.array([[2000.0, 0.0], [2000.0, 2000.0], [0.0, 2000.0], [0.0, 0.0]])
 CAPTURE = 300.0
 
@@ -33,7 +33,7 @@ def main():
 
     for i in range(int(T_MAX / DT)):
         t = i * DT
-        if nav.done:
+        if nav.done and t > nav.captures[-1][1] + T_EXTRA:
             break
         phi, _, psi = quat.to_euler(y[6:10])
         lat.target_heading = nav.heading_command(y[0], y[1], t)
@@ -56,9 +56,23 @@ def main():
 
     d = {k: np.array(v) for k, v in log.items()}
 
-    print(f"Mission {'completed' if nav.done else 'NOT completed'} in {d['t'][-1]:.1f} s")
+    print(f"Mission {'completed' if nav.done else 'NOT completed'} in {nav.captures[-1][1]:.1f} s")
     for idx, tc, miss in nav.captures:
         print(f"  WP{idx + 1} {WAYPOINTS[idx].astype(int).tolist()} | captured at {tc:6.1f} s | closest approach {miss:6.1f} m")
+    pts = np.column_stack([d["pn"], d["pe"]])
+    starts = np.vstack([[0.0, 0.0], WAYPOINTS[:-1]])
+    print("Waypoint accuracy (true closest approach, cross-track on leg):")
+    for k, (wp, s) in enumerate(zip(WAYPOINTS, starts)):
+        t0 = 0.0 if k == 0 else nav.captures[k - 1][1]
+        t1 = nav.captures[k][1]
+        after = d["t"] >= t0
+        dist = np.hypot(pts[after, 0] - wp[0], pts[after, 1] - wp[1])
+        seg = (d["t"] >= t0) & (d["t"] <= t1)
+        leg = wp - s
+        length = np.hypot(leg[0], leg[1])
+        rel = pts[seg] - s
+        xt = (rel[:, 0] * leg[1] - rel[:, 1] * leg[0]) / length
+        print(f"  WP{k + 1} | true closest approach {dist.min():6.1f} m | max cross-track on leg {np.abs(xt).max():6.1f} m")
     print(f"Max bank angle:  {np.abs(d['phi']).max():.1f} deg")
     print(f"Altitude range:  {d['alt'].min():.1f} .. {d['alt'].max():.1f} m")
     print(f"Airspeed range: {d['spd'].min():.1f} .. {d['spd'].max():.1f} m/s")
@@ -109,3 +123,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
