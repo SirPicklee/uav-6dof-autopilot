@@ -219,3 +219,45 @@ Notes on these numbers:
   not tuned.
 
 ![Waypoint mission](examples/waypoint_mission.png)
+
+## State estimation (EKF)
+
+A 9-state extended Kalman filter estimates position (NED), velocity (NED) and accelerometer
+bias. It predicts at 100 Hz from IMU specific force and corrects with GPS (5 Hz, position and
+velocity) and a barometer (25 Hz, altitude). Covariance is updated in Joseph form.
+
+Sensor models (white noise, plus random-walk bias for the IMU) use **estimated** noise levels
+representative of small UAV sensors, not values from a specific datasheet: GPS 2.5 m position
+and 0.1 m/s velocity, barometer 1.5 m, accelerometer 0.05 m/s^2, gyro 0.002 rad/s.
+
+Scenario: closed-square mission with L1 guidance (about 143 s), first 10 s excluded from RMS.
+
+| Quantity | EKF RMS error | Raw sensor |
+|---|---|---|
+| Position | 0.40 m | 4.26 m (GPS, measured) |
+| Altitude | 0.13 m | 1.51 m (barometer, measured) |
+| Velocity | 0.061 m/s | about 0.173 m/s (GPS, theoretical) |
+
+![EKF estimation](examples/ekf_estimation.png)
+
+**These results are optimistic.** Attitude is supplied to the filter as ground truth, the filter
+noise parameters equal the true sensor noise, the IMU has no scale-factor error, misalignment or
+vibration, and filter consistency (covariance vs. actual error) was not checked.
+
+### Sensitivity to attitude error
+
+A constant roll error was added to the attitude given to the EKF (simulation unchanged):
+
+| Roll error | Position RMS | Velocity RMS | Max position error |
+|---|---|---|---|
+| 0 deg | 0.40 m | 0.061 m/s | 0.68 m |
+| 1 deg | 0.43 m | 0.148 m/s | 0.73 m |
+| 3 deg | 0.51 m | 0.414 m/s | 0.85 m |
+| 10 deg | 0.86 m | 1.356 m/s | 1.43 m |
+
+Velocity is much more sensitive to attitude error than position: 1 deg raises velocity RMS
+about 2.4x, position only about 8%. A likely reason is that GPS position corrections bound the
+drift, and that the filter absorbs part of the error into the accelerometer bias estimate, but
+neither mechanism was measured. Only constant roll error was tested (no pitch, yaw or
+time-varying error), and flight and turns were not analysed separately.
+
