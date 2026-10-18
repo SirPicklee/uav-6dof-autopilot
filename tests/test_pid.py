@@ -69,3 +69,18 @@ def test_invalid_inputs_raise():
         PID(kp=1.0).update(1.0, 0.0, 0.0)
     with pytest.raises(ValueError):
         PID(kp=1.0, out_min=1.0, out_max=-1.0).update(1.0, 0.0, 0.1)
+
+
+def test_integral_separation_blocks_large_errors():
+    pid = PID(kp=0.0, ki=1.0, i_zone=5.0)
+    for _ in range(100):
+        pid.update(setpoint=10.0, measurement=0.0, dt=0.1)  # |error| = 10 > i_zone
+    assert pid._integral == 0.0
+
+
+def test_integral_separation_allows_small_errors():
+    pid = PID(kp=0.0, ki=1.0, i_zone=5.0)
+    out = 0.0
+    for _ in range(10):
+        out = pid.update(setpoint=2.0, measurement=0.0, dt=0.1)  # |error| = 2 < i_zone
+    assert np.isclose(out, 2.0)
