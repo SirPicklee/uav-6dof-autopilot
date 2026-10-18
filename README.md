@@ -173,3 +173,49 @@ Notes:
 - No actuator dynamics (no servo lag or rate limits).
 - No sensor noise or state estimation yet (EKF is on the roadmap).
 - Longitudinal control only; no lateral autopilot yet.
+
+## Lateral autopilot and waypoint navigation
+
+The lateral autopilot is cascaded: heading error -> bank command (P, limited to 30 deg),
+bank error -> aileron (PID), plus a washout yaw damper on the rudder. It runs together with
+the longitudinal altitude/airspeed hold in the nonlinear 6-DoF model.
+
+**Heading steps (four 90 deg steps, square pattern):** settling to within 2 deg took about
+22 s each, with 0.00 deg overshoot. Max bank 29.8 deg, max sideslip 4.03 deg (when it occurs
+was not examined), altitude 995.1 to 1002.2 m, airspeed 49.4 to 50.7 m/s during the turns.
+
+### Autonomous waypoint mission
+
+Closed square, 2 km legs, 1000 m, 50 m/s, four waypoints. Mission completed in about
+143 to 155 s depending on the guidance law. During the mission altitude stayed within
+995.0 to 1002.3 m and airspeed within 49.4 to 50.6 m/s (radius capture run).
+
+Two guidance laws are compared:
+
+- **Radius capture:** fly directly toward the active waypoint, switch when within 300 m.
+- **L1 leg following:** aim at a point 400 m ahead on the current leg, switch legs 441 m
+  before the waypoint (about the turn radius at 30 deg bank).
+
+| | Radius capture | L1 leg following |
+|---|---|---|
+| Mission time | 154.7 s | 143.4 s |
+| Closest approach to WP1-3 | 64 to 66 m | 145 to 154 m |
+| Max cross-track, leg 2 | 184.2 m | 33.7 m |
+| Max cross-track, leg 3 | 128.1 m | 36.0 m |
+| Max cross-track, leg 4 | 143.6 m | 35.4 m |
+
+Notes on these numbers:
+
+- Cross-track is the maximum deviation in the second half of each leg, up to the leg switch.
+  It indicates how well the aircraft settles on the line after a turn; it is not an upper
+  bound on path error. Whether the turn is finished by mid-leg was not checked.
+- L1 tracks the line much more closely after turns, but passes 145 to 154 m from the
+  waypoints because it starts turning early. If a mission requires flying over the waypoint,
+  this is a cost.
+- The leg 1 value (0 m) and the WP4 closest approach are omitted: WP4 coincides with the
+  start point, so those numbers carry no information.
+- An earlier cross-track measurement was invalid (it mixed points from other legs and the
+  window start) and was discarded. `turn_lead` and `L1` distance were chosen by estimate and
+  not tuned.
+
+![Waypoint mission](examples/waypoint_mission.png)
