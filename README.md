@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/SirPicklee/uav-6dof-autopilot/actions/workflows/tests.yml/badge.svg)](https://github.com/SirPicklee/uav-6dof-autopilot/actions/workflows/tests.yml)
 
-[![tests](https://github.com/SirPicklee/uav-6dof-autopilot/actions/workflows/tests.yml/badge.svg)](https://github.com/SirPicklee/uav-6dof-autopilot/actions/workflows/tests.yml)
+
 
 A 6-DoF fixed-wing UAV flight dynamics simulator with a PID autopilot, written in Python.
 Built from first principles: quaternion kinematics, RK4 integration, ISA atmosphere,
@@ -92,5 +92,6 @@ python examples\autopilot_climb.py
 ## License
 
 MIT
+
 
 
