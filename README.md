@@ -95,3 +95,34 @@ MIT
 
 
 
+
+## PID vs. LQI (nonlinear 6-DoF, 50 m climb)
+
+Both controllers start 50 m below the target at trim airspeed (50 m/s, 1000 m) and are
+evaluated in the full nonlinear model. The LQI is a longitudinal LQR augmented with an
+airspeed integrator (the altitude state is the altitude error itself, not its integral).
+Weights: `Q = diag(0.1, 1, 1, 10, Q_h, 0.5)`, `R = diag(100, 1)`.
+
+| Controller | Settling (2 m) | Min airspeed | Max alpha |
+|---|---|---|---|
+| PID (`ki = 0`) | 39.9 s | 46.7 m/s | 4.65 deg |
+| LQI, Q_h = 0.02 | 56.3 s | 48.8 m/s | 2.49 deg |
+| LQI, Q_h = 0.05 | 57.5 s | 48.2 m/s | 3.16 deg |
+| LQI, Q_h = 0.10 | 58.9 s | 47.4 m/s | 3.89 deg |
+| LQI, Q_h = 0.20 | 59.0 s | 46.4 m/s | 4.87 deg |
+| LQI, Q_h = 0.50 | 48.4 s | 44.5 m/s | 6.61 deg |
+| LQI, Q_h = 1.00 | 43.5 s | 43.1 m/s | 8.30 deg |
+| LQI, Q_h = 2.00 | 32.8 s | 42.2 m/s | 10.26 deg |
+
+![LQI weight sweep](examples/lqi_weight_sweep.png)
+
+**Finding:** in this scenario and with these weights, PID gives a better trade-off than LQI.
+LQI with a similar speed dip and alpha (Q_h = 0.2) is much slower (59 s); LQI with a similar
+settling time (Q_h = 1.0) has a deeper speed dip and higher alpha. This is not a general
+statement about LQR: R, the other Q entries and the altitude-error clipping (10 m) were not
+explored systematically. Settling time is not monotonic in Q_h for small weights; the cause
+was not investigated.
+
+Linear analysis at trim (50 m/s, 1000 m): phugoid period 26.2 s (zeta 0.10), short period
+wn 3.85 rad/s (zeta 0.52), Dutch roll wn 3.0 rad/s (zeta 0.26), roll mode tau 0.12 s,
+spiral tau 69 s (stable). The simulated phugoid period matches the eigenvalue analysis.
