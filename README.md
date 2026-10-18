@@ -126,3 +126,50 @@ was not investigated.
 Linear analysis at trim (50 m/s, 1000 m): phugoid period 26.2 s (zeta 0.10), short period
 wn 3.85 rad/s (zeta 0.52), Dutch roll wn 3.0 rad/s (zeta 0.26), roll mode tau 0.12 s,
 spiral tau 69 s (stable). The simulated phugoid period matches the eigenvalue analysis.
+
+## Wind rejection
+
+Wind steps on at t = 10 s while the UAV is trimmed at 50 m/s, 1000 m. Controllers use
+**airspeed** (ground velocity minus wind) as the speed feedback. PID here is the current
+tuning: `ki = 0.0002` with integral separation (`i_zone = 5 m`).
+
+| Case | Controller | Max altitude error | Final altitude error | Airspeed |
+|---|---|---|---|---|
+| Downdraft 0.5 m/s | PID | 2.04 m | -0.107 m | 49.97 m/s |
+| Downdraft 0.5 m/s | LQI | 0.91 m | -0.884 m | 50.00 m/s |
+| North wind 5 m/s | PID | 2.55 m | 0.017 m | 50.02 m/s |
+| North wind 5 m/s | LQI | 7.50 m | -1.662 m | 50.00 m/s |
+| Downdraft 2 m/s | PID (`ki = 0`) | 19.0 m | -19.0 m | 45.3 m/s |
+| Downdraft 2 m/s | LQI | 114.7 m | -114.7 m | 50.0 m/s |
+
+Notes:
+
+- The 2 m/s downdraft may exceed the available thrust margin at 50 m/s. This was not
+  measured; the rows are reported as they came out.
+- The LQI altitude state is a proportional term (altitude error), not an integral, so it
+  leaves a steady-state altitude error under a constant downdraft.
+- LQI `u` and `w` states still come from ground-relative body velocity; only its speed
+  integrator uses airspeed. Whether this explains the larger error in the north-wind case
+  was not tested.
+
+## Issues found during validation
+
+1. **Ground-speed feedback.** The first wind test fed ground speed to the controllers. With a
+   5 m/s north wind, airspeed settled at 45 m/s while ground speed read 50 m/s. Fixed by
+   feeding airspeed to the speed loops.
+2. **Integral action vs. climb overshoot.** PID with `ki = 0.0002` overshot a 50 m climb by
+   10.5 m. With `ki = 0` the overshoot was 0.6 m but a 0.5 m/s downdraft left a 2.5 m steady
+   error. Integral separation (integrate only while |error| < 5 m) gives 1.7 m overshoot and
+   a -0.107 m steady error.
+3. **Wrong hypotheses about LQI slowness.** Raising the altitude-error clip from 10 m to 25 m
+   and removing the speed-integrator clamp did not shorten settling time. Raising the
+   altitude weight did, at the cost of a deeper speed dip and higher alpha.
+4. **LQR short-period bandwidth.** The first LQR placed the short period near 15 rad/s, which
+   is unrealistic without actuator dynamics. Increasing R brought it to about 8.5 rad/s.
+
+## Known limitations
+
+- Aerodynamic coefficients are estimated, not manufacturer data.
+- No actuator dynamics (no servo lag or rate limits).
+- No sensor noise or state estimation yet (EKF is on the roadmap).
+- Longitudinal control only; no lateral autopilot yet.
