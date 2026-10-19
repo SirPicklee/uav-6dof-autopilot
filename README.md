@@ -26,7 +26,7 @@ aerodynamic force/moment model, trim solver, and closed-loop altitude/airspeed h
 - LQR and LQI longitudinal controllers, compared with PID in the nonlinear model
 - Lateral autopilot (heading hold, yaw damper) and waypoint guidance (radius capture, L1 leg following)
 - IMU, GPS and barometer sensor models and a 9-state EKF
-- 82 unit tests, GitHub Actions CI
+- 91 unit tests, GitHub Actions CI
 
 ## Validation
 
@@ -311,3 +311,4 @@ attitude axis causes the velocity degradation was not measured.
   known, zero sideslip), not the true velocity.
 - No yaw correction: 1.17 deg yaw RMS over 143 s will drift in a longer flight.
 - Gain `kp = 1.0` was not tuned. The location of the 12.35 deg maximum error was not examined.
+
