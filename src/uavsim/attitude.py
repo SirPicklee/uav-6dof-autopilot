@@ -20,7 +20,9 @@ class MahonyFilter:
         self.ki = ki
         self._integral = np.zeros(3)
 
-    def update(self, gyro, accel, dt):
+    def update(self, gyro, accel, dt, vel_body=None):
+        if vel_body is not None:
+            accel = np.asarray(accel) - np.cross(gyro, vel_body)
         norm = float(np.linalg.norm(accel))
         omega = np.asarray(gyro, dtype=float).copy()
         if norm > 1e-6:
@@ -31,3 +33,4 @@ class MahonyFilter:
             omega = omega + self.kp * e + self._integral
         self.q = quat.normalize(self.q + quat.derivative(self.q, omega) * dt)
         return self.q
+

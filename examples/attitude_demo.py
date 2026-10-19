@@ -47,7 +47,7 @@ def main():
         d = state_derivative(y, c)
         accel_true = d[3:6] + np.cross(y[10:13], y[3:6]) - dcm.T @ np.array([0.0, 0.0, G0])
         accel_meas, gyro_meas = imu.measure(accel_true, y[10:13])
-        q_est = est.update(gyro_meas, accel_meas, DT)
+        q_est = est.update(gyro_meas, accel_meas, DT, vel_body=np.array([SPD, 0.0, 0.0]))
 
         dq = quat.multiply(quat.conjugate(y[6:10]), q_est)
         total = np.degrees(2.0 * np.arccos(np.clip(abs(dq[0]), 0.0, 1.0)))
@@ -70,3 +70,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
