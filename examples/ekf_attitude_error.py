@@ -15,6 +15,7 @@ from uavsim.guidance import L1Navigator
 from uavsim.integrators import rk4_step
 from uavsim.lateral import LateralAutopilot
 from uavsim.sensors import GPS, IMU, Barometer
+from uavsim.attitude import MahonyFilter
 
 ALT, SPD, DT = 1000.0, 50.0, 0.01
 WAYPOINTS = np.array([[2000.0, 0.0], [2000.0, 2000.0], [0.0, 2000.0], [0.0, 0.0]])
@@ -36,6 +37,7 @@ def run(att_err_deg):
     gps_every = int(round(1.0 / (gps.rate_hz * DT)))
     baro_every = int(round(1.0 / (baro.rate_hz * DT)))
     err_rot = rot_x(np.radians(att_err_deg))
+    est = MahonyFilter(y[6:10].copy(), kp=1.0)
 
     pos_err, vel_err = [], []
     ts = []
@@ -51,8 +53,9 @@ def run(att_err_deg):
         dcm = quat.to_dcm(y[6:10])
         d = state_derivative(y, c)
         accel_true = d[3:6] + np.cross(y[10:13], y[3:6]) - dcm.T @ np.array([0.0, 0.0, G0])
-        accel_meas, _ = imu.measure(accel_true, y[10:13])
-        ekf.predict(accel_meas, dcm @ err_rot, DT)   # EKF uses the wrong attitude
+        accel_meas, gyro_meas = imu.measure(accel_true, y[10:13])
+        q_est = est.update(gyro_meas, accel_meas, DT, vel_body=np.array([SPD, 0.0, 0.0]))
+        ekf.predict(accel_meas, quat.to_dcm(q_est) if att_err_deg < 0 else dcm @ err_rot, DT)
         if i % gps_every == 0:
             p_meas, v_meas = gps.measure(y[0:3], dcm @ y[3:6])
             ekf.update_gps(p_meas, v_meas, gps.pos_noise, gps.vel_noise)
@@ -71,10 +74,11 @@ def run(att_err_deg):
 
 def main():
     print("Roll attitude error given to EKF | position RMS | velocity RMS | max position error")
-    for e in (0.0, 1.0, 3.0, 10.0):
+    for e in (-1.0, 0.0):
         p, v, mx = run(e)
         print(f"  {e:4.1f} deg | {p:6.2f} m | {v:6.3f} m/s | {mx:6.2f} m")
 
 
 if __name__ == "__main__":
     main()
+
