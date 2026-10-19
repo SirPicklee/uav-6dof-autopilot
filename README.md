@@ -22,7 +22,11 @@ aerodynamic force/moment model, trim solver, and closed-loop altitude/airspeed h
 - Level-flight trim solver (alpha, elevator, throttle)
 - PID controller with derivative-on-measurement, derivative filtering and anti-windup
 - Altitude-hold and airspeed-hold autopilot (cascaded loops)
-- 56 unit tests
+- Linearization and modal analysis (short period, phugoid, Dutch roll, roll, spiral)
+- LQR and LQI longitudinal controllers, compared with PID in the nonlinear model
+- Lateral autopilot (heading hold, yaw damper) and waypoint guidance (radius capture, L1 leg following)
+- IMU, GPS and barometer sensor models and a 9-state EKF
+- 82 unit tests, GitHub Actions CI
 
 ## Validation
 
@@ -80,13 +84,15 @@ python examples\autopilot_climb.py
 
 ## Roadmap
 
-- [ ] Rejection of wind and turbulence (re-tune integral action)
-- [ ] Linearization and modal analysis (short period, phugoid, Dutch roll)
-- [ ] LQR controller and comparison with PID
-- [ ] Sensor models and Extended Kalman Filter (IMU + GPS + barometer)
-- [ ] Waypoint navigation and lateral autopilot
+- [x] Wind rejection (airspeed feedback, PID integral separation); turbulence not yet tested
+- [x] Linearization and modal analysis (short period, phugoid, Dutch roll)
+- [x] LQR/LQI controller and comparison with PID
+- [x] Sensor models and EKF (IMU + GPS + barometer), with ground-truth attitude
+- [x] Waypoint navigation and lateral autopilot
+- [ ] Attitude estimation (complementary / Mahony filter) feeding the EKF
+- [ ] Actuator dynamics (servo lag, rate limits)
 - [ ] Cross-validation against JSBSim / PX4 SITL
-- [ ] GitHub Actions CI
+- [x] GitHub Actions CI
 - [ ] C++ core
 
 ## License
@@ -260,4 +266,7 @@ about 2.4x, position only about 8%. A likely reason is that GPS position correct
 drift, and that the filter absorbs part of the error into the accelerometer bias estimate, but
 neither mechanism was measured. Only constant roll error was tested (no pitch, yaw or
 time-varying error), and flight and turns were not analysed separately.
+
+
+
 
