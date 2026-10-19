@@ -270,3 +270,44 @@ time-varying error), and flight and turns were not analysed separately.
 
 
 
+
+## Attitude estimation (Mahony filter)
+
+A Mahony complementary filter estimates attitude from gyro and accelerometer. The gyro
+propagates the quaternion, the accelerometer's gravity direction corrects roll and pitch.
+There is **no yaw correction** (gyro integration only). Test: closed-square mission with L1
+guidance (about 143 s), IMU noise as in the sensor models above.
+
+During a coordinated turn the accelerometer measures gravity plus centripetal acceleration, so
+the "down" direction is misleading. The second variant subtracts the centripetal term
+(gyro x body velocity) before the correction.
+
+| Variant | Total RMS | Max | Roll / Pitch / Yaw RMS | Wings level | Turning (bank > 20 deg) |
+|---|---|---|---|---|---|
+| No centripetal compensation | 23.14 deg | 39.44 deg | 15.10 / 1.22 / 17.96 deg | 17.27 deg | 30.81 deg |
+| With compensation | 2.01 deg | 12.35 deg | 1.62 / 0.23 / 1.17 deg | 1.16 deg | 2.90 deg |
+
+The 17 deg error in wings-level flight without compensation is probably left over from the
+turns (nothing corrects yaw), but this was not tested separately.
+
+### EKF with estimated attitude
+
+The EKF was run with the Mahony attitude instead of ground truth:
+
+| Attitude source | Position RMS | Velocity RMS |
+|---|---|---|
+| Ground truth | 0.40 m | 0.061 m/s |
+| Mahony (with compensation) | 0.39 m | 0.192 m/s |
+
+Position is unchanged because GPS bounds it; velocity is about 3x worse. This falls between the
+1 deg and 3 deg rows of the constant-roll-error table above, but that table used a constant
+roll error while the Mahony error varies during turns, so the match is approximate. Which
+attitude axis causes the velocity degradation was not measured.
+
+**Caveats:**
+
+- The filter starts from the true attitude; initial convergence was not measured.
+- The centripetal compensation assumes a fixed body velocity of [50, 0, 0] m/s (airspeed
+  known, zero sideslip), not the true velocity.
+- No yaw correction: 1.17 deg yaw RMS over 143 s will drift in a longer flight.
+- Gain `kp = 1.0` was not tuned. The location of the 12.35 deg maximum error was not examined.
