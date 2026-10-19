@@ -90,7 +90,7 @@ python examples\autopilot_climb.py
 - [x] Sensor models and EKF (IMU + GPS + barometer), with ground-truth attitude
 - [x] Waypoint navigation and lateral autopilot
 - [ ] Attitude estimation (complementary / Mahony filter) feeding the EKF
-- [ ] Actuator dynamics (servo lag, rate limits)
+- [x] Actuator dynamics (servo lag, rate limits), tested on a slow climb only
 - [ ] Cross-validation against JSBSim / PX4 SITL
 - [x] GitHub Actions CI
 - [ ] C++ core
@@ -311,4 +311,31 @@ attitude axis causes the velocity degradation was not measured.
   known, zero sideslip), not the true velocity.
 - No yaw correction: 1.17 deg yaw RMS over 143 s will drift in a longer flight.
 - Gain `kp = 1.0` was not tuned. The location of the 12.35 deg maximum error was not examined.
+
+
+## Actuator dynamics
+
+Control surfaces are modelled as a first-order lag with rate and position limits. The values are
+**estimated**, not taken from a servo datasheet: elevator tau 0.05 s with 60 deg/s rate limit
+(nominal) or tau 0.15 s with 30 deg/s (slow); both limited to +-20 deg; throttle lag tau 0.3 s
+(nominal) or 0.5 s (slow).
+
+PID and LQI (Q_h = 0.5) were run on the same 50 m climb in the nonlinear model. PID here uses the
+current tuning (`ki = 0.0002`, `i_zone = 5 m`), so its numbers differ from the earlier table
+(which used `ki = 0`).
+
+| Case | Controller | Overshoot | Settling (2 m) | Min airspeed | Max alpha |
+|---|---|---|---|---|---|
+| No actuator | PID | 1.71 m | 38.3 s | 46.7 m/s | 4.65 deg |
+| No actuator | LQI | 0.12 m | 48.4 s | 44.5 m/s | 6.61 deg |
+| Nominal servo | PID | 1.72 m | 38.4 s | 46.7 m/s | 4.83 deg |
+| Nominal servo | LQI | 0.14 m | 48.6 s | 44.5 m/s | 8.50 deg |
+| Slow servo | PID | 1.72 m | 38.5 s | 46.7 m/s | 5.24 deg |
+| Slow servo | LQI | 0.17 m | 48.9 s | 44.4 m/s | 8.41 deg |
+
+Actuator lag changed settling time by at most 0.6 s and caused no oscillation in this scenario.
+The visible effect is a higher peak angle of attack, mostly for LQI (6.61 to 8.50 deg, PID 4.65 to
+5.24 deg). A plausible reason is that a 50 m climb takes tens of seconds, much longer than the
+0.05 to 0.15 s lag, but this was not measured. Fast manoeuvres and disturbances near the short
+period (about 2 s) were not tested, and that is where actuator lag would matter most.
 
