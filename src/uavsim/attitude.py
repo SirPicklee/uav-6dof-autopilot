@@ -34,3 +34,16 @@ class MahonyFilter:
         self.q = quat.normalize(self.q + quat.derivative(self.q, omega) * dt)
         return self.q
 
+
+    def correct_yaw(self, course, kp_yaw, dt):
+        """Pull the estimated yaw toward a GPS course angle (rad).
+
+        Assumes course ~ yaw (small sideslip, no wind). The correction is applied
+        about the NED vertical axis, expressed in the body frame.
+        """
+        yaw = quat.to_euler(self.q)[2]
+        err = (course - yaw + np.pi) % (2.0 * np.pi) - np.pi
+        down_in_body = quat.to_dcm(self.q).T @ np.array([0.0, 0.0, 1.0])
+        omega = kp_yaw * err * down_in_body
+        self.q = quat.normalize(self.q + quat.derivative(self.q, omega) * dt)
+        return self.q
