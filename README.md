@@ -110,7 +110,7 @@ python examples\autopilot_climb.py
 - [x] LQR/LQI controller and comparison with PID
 - [x] Sensor models and EKF (IMU + GPS + barometer), with ground-truth attitude
 - [x] Waypoint navigation and lateral autopilot
-- [x] Attitude estimation (Mahony filter) feeding the EKF, no yaw correction yet
+- [x] Attitude estimation (Mahony filter) feeding the EKF, GPS-course yaw correction, biased in wind
 - [x] Actuator dynamics (servo lag, rate limits), tested on a slow climb only
 - [ ] Cross-validation against JSBSim / PX4 SITL
 - [x] GitHub Actions CI
@@ -296,7 +296,7 @@ time-varying error), and flight and turns were not analysed separately.
 
 A Mahony complementary filter estimates attitude from gyro and accelerometer. The gyro
 propagates the quaternion, the accelerometer's gravity direction corrects roll and pitch.
-There is **no yaw correction** (gyro integration only). Test: closed-square mission with L1
+The base filter has no yaw correction (gyro integration only); a GPS-course correction is described in the Yaw correction section below. Test: closed-square mission with L1
 guidance (about 143 s), IMU noise as in the sensor models above.
 
 During a coordinated turn the accelerometer measures gravity plus centripetal acceleration, so
@@ -361,5 +361,41 @@ The visible effect is a higher peak angle of attack, mostly for LQI (6.61 to 8.5
 period (about 2 s) were not tested, and that is where actuator lag would matter most.
 
 
+
+
+
+## Yaw correction (GPS course)
+
+Without yaw correction the Mahony yaw drifts. Measured over 600 s on the repeated square mission
+(single sensor seed):
+
+| Window | Yaw error mean (no correction) | Total RMS (no correction) | Total RMS (GPS course) | Yaw error mean (GPS course) |
+|---|---|---|---|---|
+| 0-100 s | -0.30 deg | 1.59 deg | 1.60 deg | -0.03 deg |
+| 100-200 s | -1.89 deg | 2.98 deg | 2.19 deg | -0.12 deg |
+| 200-300 s | -3.43 deg | 3.99 deg | 2.08 deg | -0.07 deg |
+| 300-400 s | -3.61 deg | 4.05 deg | 1.92 deg | -0.10 deg |
+| 400-500 s | -4.57 deg | 5.06 deg | 2.15 deg | -0.07 deg |
+| 500-600 s | -7.71 deg | 8.06 deg | 2.11 deg | -0.27 deg |
+
+The correction pulls the estimated yaw toward the GPS course angle (`atan2(ve, vn)`, 5 Hz) with
+gain `kp_yaw = 0.2`. It removes the drift: the total RMS stays near 2 deg instead of growing.
+The remaining error is probably from roll and pitch, but this was not separated.
+
+**Limitation: it assumes course equals yaw (no wind).** With a constant 5 m/s east wind over 300 s:
+
+| Case | Yaw error mean | Yaw RMS | Max error |
+|---|---|---|---|
+| No yaw correction | -1.81 deg | 2.27 deg | 3.80 deg |
+| GPS course correction | -0.07 deg | 4.00 deg | 6.78 deg |
+
+In wind, the course differs from the heading, so the correction is biased: yaw RMS is worse than
+without correction over 300 s. The mean is near zero, which fits an error that changes sign with
+the flight direction on a square route, but this was not measured directly. Whether the
+correction still wins over 600 s in wind was not tested. A fix would use airspeed or a wind
+estimate instead of ground course.
+
+Caveats: single run and seed, `kp_yaw` not tuned, the filter starts from the true attitude, and
+the centripetal compensation still assumes a fixed body velocity of [50, 0, 0] m/s.
 
 
