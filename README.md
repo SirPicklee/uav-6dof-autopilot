@@ -26,7 +26,7 @@ aerodynamic force/moment model, trim solver, and closed-loop altitude/airspeed h
 - LQR and LQI longitudinal controllers, compared with PID in the nonlinear model
 - Lateral autopilot (heading hold, yaw damper) and waypoint guidance (radius capture, L1 leg following)
 - IMU, GPS and barometer sensor models and a 9-state EKF
-- 91 unit tests, GitHub Actions CI
+- 96 unit tests, GitHub Actions CI
 
 ## Validation
 
@@ -82,6 +82,27 @@ python examples\autopilot_climb.py
 
 ## Project structure
 
+    src/uavsim/
+        quaternion.py     attitude math
+        integrators.py    Euler / RK4
+        atmosphere.py     ISA model
+        aircraft.py       parameter set
+        aerodynamics.py   forces and moments
+        dynamics.py       6-DoF equations of motion, trim
+        pid.py            PID with anti-windup, integral separation
+        autopilot.py      altitude / airspeed hold
+        lateral.py        heading hold, yaw damper
+        guidance.py       waypoint guidance (radius capture, L1)
+        linearize.py      numerical linearization, modal analysis
+        lqr.py            LQR design, controllability
+        sensors.py        IMU, GPS, barometer models
+        ekf.py            9-state extended Kalman filter
+        attitude.py       Mahony attitude filter
+        actuators.py      servo lag, rate and position limits
+    tests/                unit tests
+    examples/             runnable demos and result plots
+
+
 ## Roadmap
 
 - [x] Wind rejection (airspeed feedback, PID integral separation); turbulence not yet tested
@@ -89,7 +110,7 @@ python examples\autopilot_climb.py
 - [x] LQR/LQI controller and comparison with PID
 - [x] Sensor models and EKF (IMU + GPS + barometer), with ground-truth attitude
 - [x] Waypoint navigation and lateral autopilot
-- [ ] Attitude estimation (complementary / Mahony filter) feeding the EKF
+- [x] Attitude estimation (Mahony filter) feeding the EKF, no yaw correction yet
 - [x] Actuator dynamics (servo lag, rate limits), tested on a slow climb only
 - [ ] Cross-validation against JSBSim / PX4 SITL
 - [x] GitHub Actions CI
@@ -338,4 +359,7 @@ The visible effect is a higher peak angle of attack, mostly for LQI (6.61 to 8.5
 5.24 deg). A plausible reason is that a 50 m climb takes tens of seconds, much longer than the
 0.05 to 0.15 s lag, but this was not measured. Fast manoeuvres and disturbances near the short
 period (about 2 s) were not tested, and that is where actuator lag would matter most.
+
+
+
 
