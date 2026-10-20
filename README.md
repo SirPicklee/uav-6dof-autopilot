@@ -26,7 +26,7 @@ aerodynamic force/moment model, trim solver, and closed-loop altitude/airspeed h
 - LQR and LQI longitudinal controllers, compared with PID in the nonlinear model
 - Lateral autopilot (heading hold, yaw damper) and waypoint guidance (radius capture, L1 leg following)
 - IMU, GPS and barometer sensor models and a 9-state EKF
-- 96 unit tests, GitHub Actions CI
+- 100 unit tests, GitHub Actions CI
 
 ## Validation
 
@@ -330,7 +330,7 @@ attitude axis causes the velocity degradation was not measured.
 - The filter starts from the true attitude; initial convergence was not measured.
 - The centripetal compensation assumes a fixed body velocity of [50, 0, 0] m/s (airspeed
   known, zero sideslip), not the true velocity.
-- No yaw correction: 1.17 deg yaw RMS over 143 s will drift in a longer flight.
+- The base filter has no yaw correction: 1.17 deg yaw RMS over 143 s, drifting to about -7.7 deg mean over 600 s (see Yaw correction section).
 - Gain `kp = 1.0` was not tuned. The location of the 12.35 deg maximum error was not examined.
 
 
@@ -397,5 +397,7 @@ estimate instead of ground course.
 
 Caveats: single run and seed, `kp_yaw` not tuned, the filter starts from the true attitude, and
 the centripetal compensation still assumes a fixed body velocity of [50, 0, 0] m/s.
+
+
 
 
