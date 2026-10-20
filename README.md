@@ -4,8 +4,10 @@
 
 
 
-A 6-DoF fixed-wing UAV flight dynamics simulator with a PID autopilot, written in Python.
-Built from first principles: quaternion kinematics, RK4 integration, ISA atmosphere,
+A 6-DoF fixed-wing UAV simulator written in Python from first principles: nonlinear flight dynamics, trim and linearization, PID and LQI autopilots, L1 waypoint guidance, sensor models with an EKF, and a Mahony attitude filter. 100 unit tests run in CI.
+
+The repository documents what was measured and what was not. Several early hypotheses were wrong and are recorded in the Issues found during validation section. Aerodynamic coefficients and sensor noise levels are estimates, not manufacturer data.
+Main building blocks: quaternion kinematics, RK4 integration, ISA atmosphere,
 aerodynamic force/moment model, trim solver, and closed-loop altitude/airspeed hold.
 
 > **Disclaimer:** The aircraft is a *TB2-class representative UAV*. Span, wing area and mass
@@ -397,6 +399,8 @@ estimate instead of ground course.
 
 Caveats: single run and seed, `kp_yaw` not tuned, the filter starts from the true attitude, and
 the centripetal compensation still assumes a fixed body velocity of [50, 0, 0] m/s.
+
+
 
 
 
